@@ -124,7 +124,7 @@ class KNearestNeighbor(object):
     #       solution is to use equation (x - y)^2 = x^2 - 2xy + y^2. Try to #
     #       formulate it using matrix multiplication and two broadcast sums.#
     #########################################################################
-    pass
+    dists = np.sqrt(np.sum(self.X_train**2, axis = 1) + np.sum(X**2, axis = 1)[:, np.newaxis] - 2 * np.dot(X, self.X_train.T))
     #########################################################################
     #                         END OF YOUR CODE                              #
     #########################################################################
