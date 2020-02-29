@@ -131,3 +131,5 @@ dmypy.json
 datasets/cifar-10-batches-py/
 
 datasets/cifar-10-python.tar.gz
+
+practice1-knn-classifier/.idea/
