@@ -46,8 +46,8 @@ def softmax_loss_naive(W, X, y, reg):
     # TODO: Compute the gradient using explicit loops and store the sum over    #
     # samples in dW.                                                            #
     #############################################################################
-    for k in range(W.shape[1]):
-      dW[:, k] += (p[k] - (k == y[i])) * X[i]
+    for j in range(W.shape[1]):
+      dW[:, j] += (p[j] - (j == y[i])) * X[i]
     #############################################################################
     #                          END OF YOUR CODE                                 #
     #############################################################################
