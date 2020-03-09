@@ -34,12 +34,20 @@ def softmax_loss_naive(W, X, y, reg):
     # numeric instability, because exp(a) is huge if a is large.                #
     #############################################################################
     # TODO: should use explicit loops here
-    pass
+    z = X[i].dot(W)
+
+    z -= np.max(z)
+
+    p = np.exp(z) / (np.sum(np.exp(z)))
+
+    loss += -np.log(p[y[i]])
+
     #############################################################################
     # TODO: Compute the gradient using explicit loops and store the sum over    #
     # samples in dW.                                                            #
     #############################################################################
-    pass
+    for k in range(W.shape[1]):
+      dW[:, k] += (p[k] - (k == y[i])) * X[i]
     #############################################################################
     #                          END OF YOUR CODE                                 #
     #############################################################################
