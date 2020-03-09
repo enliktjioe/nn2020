@@ -78,7 +78,13 @@ def softmax_loss_vectorized(W, X, y, reg):
   # Make sure you take the average.                                           #
   # If you are not careful with softmax, you migh run into numeric instability#
   #############################################################################
-  pass
+  dotp = X.dot(W) # Find score value from X data input and weight (W) in vectorized version
+  dotp -= np.max(dotp, axis=1, keepdims=True) # Substract the score value from a constant value
+  prob = np.exp(dotp) / np.sum(np.exp(dotp), axis=1, keepdims=True) # Find the softmax probabilities
+  loss = np.mean(-np.log(prob[range(X.shape[0]),y])) # Find the loss with sum of the log of the probabilities
+  prob[range(X.shape[0]), y] -= 1 # Count probability in a vectorized form
+  dW = X.T.dot(prob) # Find the gradient value
+  dW /= dotp.shape[0] # Normalize the gradient value
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
