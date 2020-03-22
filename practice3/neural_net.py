@@ -96,9 +96,9 @@ class TwoLayerNet(object):
     # classifier loss.                                                          #
     #############################################################################
     scores_exp = np.exp(scores)
-    p = scores_exp/(np.sum(scores_exp, axis=1, keepdims=True))
-    loss = -np.mean(np.log(p[np.arange(N),y]))
-    loss += reg * (np.sum(W1**2)+np.sum(W2**2))
+    p = scores_exp / (np.sum(scores_exp, axis=1, keepdims=True))
+    loss = -np.mean(np.log(p[np.arange(N), y]))
+    loss += reg * (np.sum(W1 ** 2) + np.sum(W2 ** 2))
 
     #############################################################################
     #                              END OF YOUR CODE                             #
@@ -112,12 +112,12 @@ class TwoLayerNet(object):
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
     d_scores = p
-    d_scores[range(N),y] -= 1
-    d_scores = d_scores/N
+    d_scores[range(N), y] -= 1
+    d_scores = d_scores / N
     grads['W2'] = H1.T.dot(d_scores)
-    grads['b2'] = np.sum(d_scores, axis = 0)
+    grads['b2'] = np.sum(d_scores, axis=0)
     d_H1 = d_scores.dot(W2.T)
-    d_H1[A1<=0] = 0
+    d_H1[A1 <= 0] = 0
 
     grads['W1'] = X.T.dot(d_H1)
     grads['b1'] = np.sum(d_H1, axis=0)
@@ -235,7 +235,7 @@ class TwoLayerNet(object):
     z1 = X.dot(self.params['W1']) + self.params['b1']
     a1 = np.maximum(z1, 0)
     scores = a1.dot(self.params['W2']) + self.params['b2']
-    y_pred = np.argmax(scores, axis = 1)
+    y_pred = np.argmax(scores, axis=1)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
