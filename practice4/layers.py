@@ -103,7 +103,8 @@ def relu_forward(x):
     ###########################################################################
     # TODO: Implement the ReLU forward pass.                                  #
     ###########################################################################
-    pass
+    # Change all negative to zero, and keep maintaining the positive values
+    out = np.maximum(x, 0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -126,7 +127,12 @@ def relu_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the ReLU backward pass.                                 #
     ###########################################################################
-    pass
+    # Create a copy of dx value
+    dx = np.array(dout, copy=True)
+
+    # Keep the positive values only by change all the negative and zero values
+    # to 0
+    dx[x<=0] = 0
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
