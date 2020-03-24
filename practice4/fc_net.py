@@ -47,7 +47,18 @@ class TwoLayerNet(object):
         # and biases using the keys 'W2' and 'b2'.                                 #
         # See also: http://cs231n.github.io/neural-networks-2/#init                #
         ############################################################################
-        pass
+        # Initialize all the weights inside the self.params dictionary, with numpy
+        # random numbers generator and multiply it by the weight_scale.
+        # Dimensions will use the network layers dimensions as following:
+        # 1st Layer Dimension = input x hidden
+        # 2nd Layer Dimension = hidden x number of classes(output)
+        self.params["W1"] = weight_scale * np.random.randn(input_dim, hidden_dim)
+        self.params["W2"] = weight_scale * np.random.randn(hidden_dim, num_classes)
+
+        # Initialize the biases with zero values in correspondence with the right
+        # vector dimensions
+        self.params["b1"] = np.zeros(hidden_dim)
+        self.params["b2"] = np.zeros(num_classes)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -77,7 +88,17 @@ class TwoLayerNet(object):
         # TODO: Implement the forward pass for the two-layer net, computing the    #
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
-        pass
+        # 1. Initialize all the values for Weights and Biases
+        W1 = self.params["W1"]
+        W2 = self.params["W2"]
+        b1 = self.params["b1"]
+        b2 = self.params["b2"]
+
+        # 2. Use forward pass with Relu activation for the hidden layer
+        h, cachel1 = affine_relu_forward(X, W1, b1)
+
+        # 3. Use forward pass for the output of hidden layer
+        scores, cachel2 = affine_forward(h, W2, b2)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -97,7 +118,16 @@ class TwoLayerNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        pass
+        loss, dscores = softmax_loss(scores, y)
+
+        loss += 0.5 * self.reg * (np.sum(W1**2) + np.sum(W2**2))
+
+        dh, grads["W2"], grads["b2"] = affine_backward(dscores, cachel2)
+
+        dx, grads["W1"], grads["b1"] = affine_relu_backward(dh, cachel1)
+
+        grads["W2"] += W2 * self.reg
+        grads["W1"] += W1 * self.reg
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -163,7 +193,34 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
-        pass
+        # 1. Get the random value of weights for the first layer
+        W1_l1 = np.random.normal(0, weight_scale, input_dim * hidden_dims[0])
+
+        # 2. Store the value of the first layer weights in the params dictionary
+        self.params["W1"] = W1_l1.reshape((input_dim, hidden_dims[0]))
+
+        # 3. Initialize the bias value of the first layer with zero value
+        self.params['b1'] = np.zeros((hidden_dims[0]))
+
+        # 4. Do the loop throughout the initialization for intermediary layers
+        for i in xrange(1, self.num_layers - 1):
+            # 4.1 Initialize the value of indexed weights with random numbers
+            # with mean 0 and defined weight scale.
+            # Reshaped to maintain dimensionality
+            self.params['W' + str(i + 1)] = np.random.normal(0, weight_scale,
+                                                             hidden_dims[i - 1] * hidden_dims[i]).reshape(
+                (hidden_dims[i - 1], hidden_dims[i]))
+
+            # 4.2 Initialize the indexed biases in the dictionary with zeros
+            self.params['b' + str(i + 1)] = np.zeros((hidden_dims[i]))
+
+        # 5. Initialize the final layer weights with random numbers with mean 0 and defined weight scale.
+        self.params['W' + str(self.num_layers)] = np.random.normal(0, weight_scale,
+                                                                   hidden_dims[-1] * num_classes).reshape(
+            (hidden_dims[-1], num_classes))
+
+        # 6. Initialize the final layer biases in the dictionary with zeros
+        self.params['b' + str(self.num_layers)] = np.zeros((num_classes))
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -221,7 +278,52 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        pass
+        # 1. Create a variable to store the cache data from every layer
+        cache_list = []
+
+        # 2. Create a copy of the input data(X)
+        input_data = X.copy()
+
+        # 3. If dropout in use
+        if self.use_dropout:
+            for i in xrange(1, self.num_layers):
+                # Do Affine Forward Pass
+                a, fc_cache = affine_forward(input_data, self.params['W' + str(i)], self.params['b' + str(i)])
+                # Do Relu activation for Forward Pass
+                r, relu_cache = relu_forward(a)
+                # Relu activation's output used to perform dropout forward pass
+                dropout_output, dropout_cache = dropout_forward(r, self.dropout_param)
+                # Store the cached values
+                cache = (fc_cache, relu_cache, dropout_cache)
+                # Store all the cached values into the cache_list
+                cache_list.append(cache)
+                # Set value of input data as the current output for next layer
+                input_data = dropout_output
+
+            # Perfrom the affine forward pass for the last layer
+            scores, dr_cache_ln = affine_forward(input_data, self.params['W' + str(self.num_layers)],
+                                                 self.params['b' + str(self.num_layers)])
+            # Store current cache to Cache list
+            cache_list.append(dr_cache_ln)
+
+        # 4. If dropout not in use, run normal mode
+        else:
+            for i in xrange(1, self.num_layers):
+                # Do the forward pass with Relu activation
+                layer_output, layer_cache = affine_relu_forward(input_data, self.params['W' + str(i)],
+                                                                self.params['b' + str(i)])
+                # Store current cached values into the cache list
+                cache_list.append(layer_cache)
+                # Set input data as current output for next layer
+                input_data = layer_output
+
+            # Do the Affine Forward Pass into the last layer
+            scores, cache_ln = affine_forward(input_data, self.params['W' + str(self.num_layers)],
+                                              self.params['b' + str(self.num_layers)])
+            # Store the value of current cache to Cache list
+            cache_list.append(cache_ln)
+
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -244,7 +346,90 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        pass
+        # 1. Using softmax_loss() to get the loss and dout value
+        loss, dout = softmax_loss(scores, y)
+
+        # 2. Initialize variable to store derivatives of weights (dw) and bias (db)
+        list_dw = []
+        list_db = []
+
+        # 3. Extract and delete the last layer entry in the Cache List
+        cache = cache_list.pop()
+
+        # 4. Do the affine backward pass on cached data for the last layer
+        dx, dw, db = affine_backward(dout, cache)
+
+        # 5. Store the derivative of weights and biases at index 0
+        list_dw.insert(0, dw)
+        list_db.insert(0, db)
+        dout = dx
+
+        # 6. If dropout is in used
+        if self.use_dropout:
+            # Loop through the cached entries for all the intermediary layers
+            for i in xrange(len(list_cache)):
+                cache = cahcelist_cache.pop()
+                # Get data by extracting it from the cache file
+                fc_cache, relu_cache, dropout_cache = cache
+                # Do the dropout backward pass
+                dd = dropout_backward(dout, dropout_cache)
+                # Do the Relu activation for backward pass
+                dr = relu_backward(dd, relu_cache)
+                # Do the Perfrom Affine backward Pass
+                dx, dw, db = affine_backward(dr, fc_cache)
+                # Update list of derivatives of weights and biases
+                list_dw.insert(0, dw)
+                list_db.insert(0, db)
+                # Set derivative of output as derivative of x
+                dout = dx
+
+            para_loss = 0
+
+            # Loop through the values in list of derivatives of weights
+            for i in xrange(len(list_dw)):
+                # Apply regularization to the weights
+                W = self.params['W' + str(i + 1)]
+                list_dw[i] += self.reg * W
+                # Use para_loss variable to store the iterative penalty terms for the regularization
+                para_loss += np.sum(W ** 2)
+            # Regularize the loss
+            loss += 0.5 * self.reg * para_loss
+
+            # Loop through and update the grads dictionary entries for derivatives of weights and biases
+            for i in xrange(len(list_dw)):
+                grads['W' + str(i + 1)] = list_dw[i]
+                grads['b' + str(i + 1)] = list_db[i]
+
+            # If dropout is not specified, run normal mode
+        else:
+            # Loop through the cached entries for all the intermediary layers
+            for i in xrange(len(list_cache)):
+                # Extract and remove the last entry in the cache list
+                cache = list_cache.pop()
+                # Perform Backward pass with Relu activation
+                dx, dw, db = affine_relu_backward(dout, cache)
+                # Update list of derivatives of weights and biases
+                list_dw.insert(0, dw)
+                list_db.insert(0, db)
+                # Set derivative of output as derivative of x
+                dout = dx
+            para_loss = 0
+
+            # Loop through the values in list of derivatives of weights
+            for i in xrange(len(list_dw)):
+                # Apply regularization to the weights
+                W = self.params['W' + str(i + 1)]
+                list_dw[i] += self.reg * W
+                # Use para_loss variable to store the iterative penalty terms for the regularization
+                para_loss += np.sum(W ** 2)
+            # Regularize the loss
+            loss += 0.5 * self.reg * para_loss
+
+            # Loop through and update the grads dictionary entries for derivatives of weights and biases
+            for i in xrange(len(list_dw)):
+                grads['W' + str(i + 1)] = list_dw[i]
+                grads['b' + str(i + 1)] = list_db[i]
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
