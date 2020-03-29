@@ -66,7 +66,12 @@ def sgd_momentum(w, dw, config=None):
     # the next_w variable. You should also use and update the velocity v.     #
     # HINT: http://cs231n.github.io/neural-networks-3/#sgd                    #
     ###########################################################################
-    pass
+    # Create formula v = mu * v - learning_rate * dw
+    v = config['momentum'] * v - config['learning_rate'] * dw
+
+    # Adding velocity value to weight as a value of next weight
+    next_w = w + v
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -101,7 +106,14 @@ def rmsprop(x, dx, config=None):
     # config['cache'].                                                        #
     # HINT: http://cs231n.github.io/neural-networks-3/#ada                    #
     ###########################################################################
-    pass
+    # Adding value to cache
+    config['cache'] = (config['decay_rate'] * config['cache']) \
+                      + (1 - config['decay_rate']) * (dx**2)
+
+    # Updating the next x value
+    next_x = x - config['learning_rate'] * dx / (np.sqrt(config['cache'])
+                                                 + config['epsilon'])
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -139,7 +151,19 @@ def adam(x, dx, config=None):
     # m, v, and t variables stored in config. NB! Increase t before update!   #
     # HINT: http://cs231n.github.io/neural-networks-3/#ada                    #
     ###########################################################################
-    pass
+    # Incrementing value of t
+    config['t'] += 1
+
+    # Implementing m = beta1 * m + (1 - beta1) * dx
+    config['m'] = config['beta1'] * config['m'] + (1 - config['beta1']) * dx
+    # Calculate mt using mt = m / (1-beta1**t)
+    mt = config['m'] / (1 - config['beta1'] ** config['t'])
+    # Implementing v = beta2*v + (1-beta2)*(dx**2)
+    config['v'] = config['beta2'] * config['v'] + (1 - config['beta2']) * (dx ** 2)
+    # Calculate vt using vt = v / (1-beta2**t)
+    vt = config['v'] / (1 - config['beta2'] ** config['t'])
+    # Update next x using the formula; x += - learning_rate * mt / (np.sqrt(vt) + eps)
+    next_x = x - config['learning_rate'] * mt / (np.sqrt(vt) + config['epsilon'])
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################

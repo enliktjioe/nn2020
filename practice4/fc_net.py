@@ -5,6 +5,7 @@ import numpy as np
 from layers import *
 from layer_utils import *
 
+from past.builtins import xrange
 
 class TwoLayerNet(object):
     """
@@ -367,8 +368,8 @@ class FullyConnectedNet(object):
         # 6. If dropout is in used
         if self.use_dropout:
             # Loop through the cached entries for all the intermediary layers
-            for i in xrange(len(list_cache)):
-                cache = cahcelist_cache.pop()
+            for i in xrange(len(cache_list)):
+                cache = cache_list.pop()
                 # Get data by extracting it from the cache file
                 fc_cache, relu_cache, dropout_cache = cache
                 # Do the dropout backward pass
@@ -403,9 +404,9 @@ class FullyConnectedNet(object):
             # If dropout is not specified, run normal mode
         else:
             # Loop through the cached entries for all the intermediary layers
-            for i in xrange(len(list_cache)):
+            for i in range(len(cache_list)):
                 # Extract and remove the last entry in the cache list
-                cache = list_cache.pop()
+                cache = cache_list.pop()
                 # Perform Backward pass with Relu activation
                 dx, dw, db = affine_relu_backward(dout, cache)
                 # Update list of derivatives of weights and biases
