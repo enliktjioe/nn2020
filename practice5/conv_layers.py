@@ -91,7 +91,48 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    x, w, b, conv_param = cache
+
+    # Get the stride and pad parameters
+    stride = conv_param['stride']
+    padding = conv_param['pad']
+
+    # Get the dimensions of the input data
+    N, C, H, W = x.shape
+
+    # Get the dimensions of the filter weights
+    F, _, HH, WW = w.shape
+    _, _, out_H, out_W = dout.shape
+
+    # Pad the input data starting at position (1,1) and using zero constant values
+    pad_input = np.zeros((N, C, H + 2 * padding, W + 2 * padding))
+    for i in range(N):
+        for j in range(C):
+            pad_input[i, j] = np.pad(x[i, j], (1, 1), 'constant', constant_values=(0, 0))
+
+    # Save the derivatives of the biases using the right indices
+    db = np.zeros((F))
+    for i in range(N):
+        for j in range(out_H):
+            for k in range(out_W):
+                db = db + dout[i, :, j, k]
+
+    # Store the derivatives of the weights and input data using the right
+    dw = np.zeros(w.shape)
+    dx_pad = np.zeros(pad_input.shape)
+    for i in range(N):
+        for j in range(F):
+            for k in range(out_H):
+                for l in range(out_W):
+                    # Extract the Input values that were convoluted
+                    x_now = pad_input[i, :, k * stride:k * stride + HH, l * stride:l * stride + WW]
+                    # Update the derivatives of the weights
+                    dw[j] = dw[j] + dout[i, j, k, l] * x_now
+                    # Update the derivates of the padded input
+                    dx_pad[i, :, k * stride:k * stride + HH, l * stride:l * stride + WW] += w[j] * dout[i, j, k, l]
+    # Update dx
+    dx = dx_pad[:, :, 1:H + 1, 1:W + 1]
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -117,7 +158,27 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # TODO: Implement the max pooling forward pass                            #
     ###########################################################################
-    pass
+    # Get the dimensions of the input data
+    N, C, H, W = x.shape
+
+    # Get pool height, width & stride
+    height_pool = pool_param['pool_height']
+    width_pool = pool_param['pool_width']
+    stride = pool_param['stride']
+
+    # Get the value of the height and width of the output from max pooling & initialize container for the output
+    out_H = 1 + (H - height_pool) / stride
+    out_W = 1 + (W - width_pool) / stride
+    out = np.zeros((N, C, int(out_H), int(out_W)))
+
+    # Do the max pooling by looping through the input and get the max values within the max pool kernel
+    for i in range(N):
+        for j in range(C):
+            for k in range(int(out_H)):
+                for l in range(int(out_W)):
+                    out[i, j, k, l] = np.max(
+                        x[i, j, k * stride:k * stride + height_pool, l * stride:l * stride + width_pool])
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -140,7 +201,32 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the max pooling backward pass                           #
     ###########################################################################
-    pass
+    # Save the input and pool parameters value from cache
+    x, pool_param = cache
+
+    # Get the pool height, width & stride from dictionary
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+
+    # Save the dimensions value based out the dout shape
+    N, C, out_H, out_W = dout.shape
+
+    # Get the derivative of x container using the shape of the input x
+    dx = np.zeros(x.shape)
+
+    # Do the loop process through the indices and obtain the max dx values
+    for i in range(N):
+        for j in range(C):
+            for k in range(out_H):
+                for l in range(out_W):
+                    x_now = x[i, j, k * stride:k * stride + pool_height, l * stride:l * stride + pool_width]
+                    x_now_max = np.max(x_now)
+
+                    # Find the max values and update dx.
+                    for (m, n) in [(m, n) for m in range(pool_height) for n in range(pool_width)]:
+                        if x_now[m, n] == x_now_max:
+                            dx[i, j, k * stride + m, l * stride + n] += dout[i, j, k, l]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
