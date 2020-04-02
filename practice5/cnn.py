@@ -48,7 +48,25 @@ class ThreeLayerConvNet(object):
         # hidden affine layer, and keys 'W3' and 'b3' for the weights and biases   #
         # of the output affine layer.                                              #
         ############################################################################
-        pass
+        # Set the value of input dimension
+        C,H,W = input_dim
+
+        # Initialize value of all three layers
+        # Using gaussian random numbers with mean 0
+        # Using scale counted by the weight scale hyper parameters and correct dim
+        # The weight dimensions in 2nd layer must be divided by 2 because of maxpool size 2x2
+        self.params['W1'] = np.random.normal(0, weight_scale, (num_filters, C,
+                                                               filter_size,
+                                                               filter_size))
+        self.params['W2'] = np.random.normal(0, weight_scale, (num_filters*(H/2)*(W/2),
+                                                               hidden_dim))
+        self.params['W3'] = np.random.normal(0, weight_scale, (hidden_dim, num_classes))
+
+        # Initialize all three biases value with zero values and appropriate dimension
+        self.params['b1'] = np.zeros(num_filters)
+        self.params['b2'] = np.zeros(hidden_dim)
+        self.params['b3'] = np.zeros(num_classes)
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
