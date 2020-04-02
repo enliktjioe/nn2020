@@ -58,8 +58,7 @@ class ThreeLayerConvNet(object):
         self.params['W1'] = np.random.normal(0, weight_scale, (num_filters, C,
                                                                filter_size,
                                                                filter_size))
-        self.params['W2'] = np.random.normal(0, weight_scale, (num_filters*(H/2)*(W/2),
-                                                               hidden_dim))
+        self.params['W2'] = np.random.normal(0, weight_scale, (num_filters*(int(H/2))*(int(W/2)),hidden_dim))
         self.params['W3'] = np.random.normal(0, weight_scale, (hidden_dim, num_classes))
 
         # Initialize all three biases value with zero values and appropriate dimension
@@ -98,7 +97,16 @@ class ThreeLayerConvNet(object):
         # computing the class scores for X and storing them in the scores          #
         # variable.                                                                #
         ############################################################################
-        pass
+        # Do the fast Convolution Forward Pass
+        convolution_out, convolution_cache = conv_forward_im2col(X, W1, b1, conv_param)
+        # Do the Relu Forward Activation
+        relu_out1, relu_out1_cache = relu_forward(convolution_out)
+        # Do the maxpool forward fast
+        maxpool_out, maxpool_cache = max_pool_forward_fast(relu_out1, pool_param)
+        # Do the Relu Activation for the final layer
+        affine_relu_out, affine_relu_cache = affine_relu_forward(maxpool_out, W2, b2)
+        # Do the final affine forward pass to get the the scores
+        scores, scores_cache = affine_forward(affine_relu_out, W3, b3)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -113,7 +121,39 @@ class ThreeLayerConvNet(object):
         # data loss using softmax, and make sure that grads[k] holds the gradients #
         # for self.params[k]. Don't forget to add L2 regularization!               #
         ############################################################################
-        pass
+        # Evaluate the value of the softmax loss and get derivative of scores
+        loss, derivative_scores = softmax_loss(scores, y)
+
+        # Apply Regularization to the loss
+        loss += 0.5 * (self.reg * (
+                    np.sum(self.params['W1'] ** 2) + np.sum(self.params['W2'] ** 2) + np.sum(self.params['W3'] ** 2)))
+
+        # Do the Affine_backward module to compute backward pass of the layer
+        layer2_dx, layer2_dw, layer2_db = affine_backward(derivative_scores, scores_cache)
+
+        # Save the value of the gradients of weights & biases
+        grads['W3'] = layer2_dw + self.reg * self.params['W3']
+        grads['b3'] = layer2_db
+
+        # Use the affine_relu_backward module to compute backward pass of layer 2
+        layer1_dx, layer1_dw, layer1_db = affine_relu_backward(layer2_dx, affine_relu_cache)
+
+        # Store the gradients of Weights & biases for layer 2
+        grads['W2'] = layer1_dw + self.reg * self.params['W2']
+        grads['b2'] = layer1_db
+
+        # Do the fast maxpool backward pass
+        maxpool_dx = max_pool_backward_fast(layer1_dx, maxpool_cache)
+
+        # Do the relu backward pass of convolution layer
+        relu_dx = relu_backward(maxpool_dx, relu_out1_cache)
+
+        # Do the the backward pass for the convolution later
+        convolution_dx, convolution_dw, convolution_db = conv_backward_im2col(relu_dx, convolution_cache)
+
+        # Save the gradients of weights & biases for the layer 1
+        grads['W1'] = convolution_dw + self.reg * self.params['W1']
+        grads['b1'] = convolution_db
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
