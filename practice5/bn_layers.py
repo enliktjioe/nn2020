@@ -64,7 +64,25 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # mean and running standard deviation, storing your result in the     #
         # running_mean and running_std variables.                             #
         #######################################################################
-        pass
+        # Get the input mean and standard deviations
+        input_mean = np.mean(x, axis=0)
+        input_std = np.var(x, axis=0)
+
+        # Calculate the normalized values for the input
+        x_norm = (x - input_mean) / (np.sqrt(input_std + eps))
+
+        # Shift and scale the normalized input
+        print(gamma.shape)
+        print(x_norm.shape)
+        out = gamma * x_norm + beta
+
+        # Calculate the running mean and sd using momentum
+        running_mean = momentum * running_mean + (1-momentum) * input_mean
+        running_std = momentum * running_std + (1-momentum) * input_std
+
+        # Keep the cache value
+        cache = (x, input_mean, input_std, x_norm, beta, gamma, eps)
+
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -75,7 +93,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        pass
+        x_norm = (x - running_mean) / (np.sqrt(running_std + eps))
+        out = gamma * x_norm + beta
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
@@ -113,7 +132,35 @@ def batchnorm_backward(dout, cache):
     #                                                                         #
     # HINT: https://kratzert.github.io/2016/02/12/understanding-the-gradient-flow-through-the-batch-normalization-layer.html #
     ###########################################################################
-    pass
+    # Get the variable's value from the cache
+    (x, input_mean, input_std, x_norm, beta, gamma, eps) = cache
+
+    # Get the dimensions of the input
+    N, D = dout.shape
+
+    # Count the derivative of beta through the summation gate
+    dbeta = np.sum(dout, axis=0)
+
+    # Count the derivative of gamma through the multiplication gate
+    dgamma = np.sum(dout * x_norm, axis=0)
+
+    # Use the derivative of the normalized input & compute the derivaties of the numerator & denominator seperately
+    dx_norm = gamma * dout
+    d_ivar = np.sum(dx_norm * (x - input_mean), axis=0)
+    dx_mu1 = dx_norm * (1. / np.sqrt(input_std + eps))
+    dsqrtstd = -1. / (np.sqrt(input_std + eps) ** 2) * d_ivar
+    dvar = 0.5 * 1. / np.sqrt(input_std + eps) * dsqrtstd
+    dsq = 1. / N * np.ones((N, D)) * dvar
+    dx_mu2 = 2 * (x - input_mean) * dsq
+    dx1 = dx_mu1 + dx_mu2
+
+    # Calculate the derivative of the mean
+    d_mean = -1 * np.sum(dx1, axis=0)
+    dx2 = 1. / N * (np.ones((N, D))) * d_mean
+
+    # Get total of the gradients to get the final gradient
+    dx = dx1 + dx2
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -145,7 +192,23 @@ def batchnorm_backward_alt(dout, cache):
     #                                                                         #
     # HINT: http://cthorey.github.io./backpropagation/                        #
     ###########################################################################
-    pass
+    # Get the variable's value from the cache
+    (x, input_mean, input_std, x_norm, beta, gamma, eps) = cache
+
+    # Get the dimensions of the input
+    N = x.shape[0]
+
+    # Calculate the gradients of beta and gamma and normalized input
+    dbeta = np.sum(dout, axis=0)
+    dgamma = np.sum(dout * x_norm, axis=0)
+    dx_norm = gamma * dout
+
+    # Calculate the gradients of the mean and standard deviations
+    dinput_std = np.sum(-1.0 / 2 * dx_norm * x_norm / (input_std + eps), axis=0)
+    dinput_mean = np.sum(-1 / np.sqrt(input_std + eps) * dx_norm, axis=0)
+
+    # Calculate the gradient with respect to the inputs
+    dx = 1 / np.sqrt(input_std + eps) * dx_norm + dinput_std * 2.0 / N * (x - input_mean) + 1.0 / N * dinput_mean
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -183,7 +246,15 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     # version of batch normalization defined above. Your implementation should#
     # be very short; ours is less than five lines.                            #
     ###########################################################################
-    pass
+    # Get the dimension value
+    N, C, W, H = x.shape
+
+    # Perform batch norm forward pass, transposing the input
+    # so spatial transformation can be obtained with the right shape
+    out, cache = batchnorm_forward(x.transpose(0, 3, 2, 1).reshape((N * H * W, C)), gamma, beta, bn_param)
+
+    # Reshape the output
+    out = out.reshape(N, W, H, C).transpose(0, 3, 2, 1)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -213,7 +284,15 @@ def spatial_batchnorm_backward(dout, cache):
     # version of batch normalization defined above. Your implementation should#
     # be very short; ours is less than five lines.                            #
     ###########################################################################
-    pass
+    # Get the dimension value
+    N, C, W, H = dout.shape
+
+    # Transpose the input in order to be reshaped accordingly
+    dx, dgamma, dbeta = batchnorm_backward_alt(dout.transpose(0, 3, 2, 1).reshape((N * H * W, C)), cache)
+
+    # Reshape the dx
+    dx = dx.reshape(N, W, H, C).transpose(0, 3, 2, 1)
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
